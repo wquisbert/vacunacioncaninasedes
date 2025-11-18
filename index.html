@@ -763,6 +763,7 @@
             const direccionIndex = headers.findIndex(h => h.includes('direccion') || h.includes('dirección'));
             const latitudIndex = headers.findIndex(h => h.includes('latitud'));
             const longitudIndex = headers.findIndex(h => h.includes('longitud'));
+            const redIndex = headers.findIndex(h => h.includes('red'));
             
             // Validar que tenemos las columnas necesarias
             if (puntoIndex === -1 || direccionIndex === -1) {
@@ -775,7 +776,7 @@
                 
                 const values = parseCSVLine(lines[i]);
                 
-                if (values.length > Math.max(puntoIndex, direccionIndex, latitudIndex, longitudIndex)) {
+                if (values.length > Math.max(puntoIndex, direccionIndex, latitudIndex, longitudIndex, redIndex)) {
                     const punto = values[puntoIndex]?.trim() || 'Punto de Vacunación';
                     const direccion = values[direccionIndex]?.trim() || 'Dirección no especificada';
                     
@@ -787,6 +788,7 @@
                         latitud = parseFloat(values[latitudIndex]?.replace(',', '.'));
                         longitud = parseFloat(values[longitudIndex]?.replace(',', '.'));
                     }
+                    const red = values[redIndex]?.trim() || 'Red de Salud';
                     
                     // Validar coordenadas
                     const hasValidCoords = !isNaN(latitud) && !isNaN(longitud) && 
@@ -798,6 +800,7 @@
                         direccion,
                         latitud: hasValidCoords ? latitud : null,
                         longitud: hasValidCoords ? longitud : null,
+                        red,
                         hasValidCoords
                     });
                 }
@@ -967,6 +970,10 @@
                                     <p class="text-gray-700 mt-1 text-sm flex items-start">
                                         <i class="fas fa-map-marker-alt text-red-400 mr-1.5 mt-0.5 flex-shrink-0"></i>
                                         <span class="break-words">${point.direccion}</span>
+                                    </p>
+                                    <p class="text-gray-700 mt-1 text-sm flex items-start">
+                                        <i class="fas fa-compass text-green-400 mr-1.5 mt-0.5 flex-shrink-0"></i>
+                                        <span class="break-words">${point.red}</span>
                                     </p>
                                     ${point.hasValidCoords ? 
                                         `<div class="flex flex-wrap items-center text-xs text-green-600 mt-2 gap-1">
@@ -1327,7 +1334,8 @@
             } else {
                 filteredPointsData = pointsData.filter(point => 
                     point.punto.toLowerCase().includes(searchTerm) || 
-                    point.direccion.toLowerCase().includes(searchTerm)
+                    point.direccion.toLowerCase().includes(searchTerm) ||
+                    oint.red.toLowerCase().includes(searchTerm)
                 );
             }
             
