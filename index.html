@@ -767,7 +767,7 @@
             
             // Validar que tenemos las columnas necesarias
             if (puntoIndex === -1 || direccionIndex === -1) {
-                throw new Error('El CSV no contiene las columnas necesarias (punto, direccion)');
+                throw new Error('El CSV no contiene las columnas necesarias (punto, direccion, red)');
             }
             
             // Procesar cada línea de datos
@@ -1329,7 +1329,7 @@
                 filteredPointsData = pointsData.filter(point => 
                     point.punto.toLowerCase().includes(searchTerm) || 
                     point.direccion.toLowerCase().includes(searchTerm) ||
-                    oint.red.toLowerCase().includes(searchTerm)
+                    point.red.toLowerCase().includes(searchTerm)
                 );
             }
             
