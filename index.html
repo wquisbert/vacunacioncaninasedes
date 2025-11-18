@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaña de Vacunación Canina - 2025</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        #map, #fullMap {
+            height: 500px;
+            border-radius: 0.5rem;
+            z-index: 1;
+        }
+        #fullMap {
+            height: calc(100vh - 140px);
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .leaflet-popup-content {
+            margin: 12px 15px;
+            line-height: 1.4;
+        }
+        .point-card {
+            transition: all 0.3s ease;
+        }
+        .point-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .active-point {
+            border-left: 4px solid #dc2626;
+            background-color: #fef2f2;
+        }
+        .map-container {
+            position: sticky;
+            top: 1rem;
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #991b1b 0%, #166534 100%);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #fef2f2 0%, #f0fdf4 100%);
+        }
+        .tab-active {
+            background-color: #dc2626;
+            color: white;
+        }
+        .mobile-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .content-area {
+            padding-bottom: 80px; /* Espacio para la navegación inferior */
+        }
+        .pagination-btn {
+            transition: all 0.3s ease;
+        }
+        .pagination-btn:hover:not(.disabled) {
+            background-color: #dc2626;
+            color: white;
+        }
+        .page-number.active {
+            background-color: #dc2626;
+            color: white;
+        }
+        .custom-marker {
+            background: #dc2626;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .custom-marker-lg {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+        }
+        .custom-marker-md {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+        }
+        .custom-marker-sm {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+        }
+        @media (min-width: 768px) {
+            .mobile-bottom-nav {
+                display: none;
+            }
+            .content-area {
+                padding-bottom: 0;
+            }
+        }
+        /* Mejorar scroll en móviles */
+        .points-container {
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen">
+    <!-- Header -->
+    <header class="header-gradient shadow-lg sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <!-- Logo -->
+                    <div class="flex items-center justify-center w-16 h-16 bg-white shadow-md">
+                        <img src="logo.png" 
+                             alt="Logo de mi empresa" 
+                             class="w-19 h-19 object-contain"> </div>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-white">CAMPAÑA DE VACUNACIÓN CANINA 2025 - SEDES LA PAZ</h1>
+                        <p class="text-red-100 text-xs hidden sm:block">ENCUENTRA LOS PUNTOS DE VACUNACION OFICIALES</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-2">
+                    <button id="refreshData" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center text-sm shadow-md">
+                        <i class="fas fa-sync-alt mr-1"></i>Actualizar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Barra de búsqueda móvil -->
+            <div class="mt-3 md:hidden">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="Buscar puntos..." 
+                           class="w-full pl-10 pr-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white/90 backdrop-blur-sm">
+                    <i class="fas fa-search absolute left-3 top-3 text-red-400"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navegación por pestañas para escritorio -->
+    <div class="bg-white shadow-sm hidden md:block border-b">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex">
+                <button id="tabList" class="tab-button px-6 py-3 font-medium text-gray-600 hover:text-red-700 border-b-2 border-transparent hover:border-red-300 transition-colors tab-active">
+                    <i class="fas fa-list mr-2"></i>Lista de Puntos
+                </button>
+                <button id="tabMap" class="tab-button px-6 py-3 font-medium text-gray-600 hover:text-red-700 border-b-2 border-transparent hover:border-red-300 transition-colors">
+                    <i class="fas fa-map mr-2"></i>Mapa General
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 content-area">
+        <!-- Loading State -->
+        <div id="loadingState" class="flex flex-col items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mb-4"></div>
+            <p class="text-gray-700">Cargando puntos de vacunación...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-red-500 mt-0.5"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">Error al cargar los datos</h3>
+                    <div class="mt-2 text-sm text-red-700">
+                        <p id="errorMessage">No se pudieron cargar los puntos de vacunación. Verifique la URL del CSV.</p>
+                    </div>
+                    <div class="mt-4">
+                        <button id="retryButton" class="bg-red-100 text-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            Reintentar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div id="content" class="hidden">
+            <!-- Barra de búsqueda escritorio -->
+            <div class="hidden md:flex mb-6">
+                <div class="relative flex-grow max-w-md">
+                    <input type="text" id="searchInputDesktop" placeholder="Buscar puntos de vacunación..." 
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white shadow-sm">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                <button id="refreshDataDesktop" class="ml-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md">
+                    <i class="fas fa-sync-alt mr-2"></i>Actualizar
+                </button>
+            </div>
+
+            <!-- Vista de Lista -->
+            <div id="listView" class="tab-content">
+                <!-- Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6">
+                    <div class="stat-card rounded-lg shadow p-4 md:p-6 border border-red-200">
+                        <div class="flex items-center">
+                            <div class="p-2 md:p-3 rounded-full bg-red-100 text-red-600 mr-3">
+                                <i class="fas fa-syringe text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs md:text-sm font-medium text-red-700">Total</p>
+                                <p id="totalPoints" class="text-lg md:text-2xl font-semibold text-red-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card rounded-lg shadow p-4 md:p-6 border border-green-200">
+                        <div class="flex items-center">
+                            <div class="p-2 md:p-3 rounded-full bg-green-100 text-green-600 mr-3">
+                                <i class="fas fa-check-circle text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs md:text-sm font-medium text-green-700">Disponibles</p>
+                                <p id="validPoints" class="text-lg md:text-2xl font-semibold text-green-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card rounded-lg shadow p-4 md:p-6 border border-yellow-200">
+                        <div class="flex items-center">
+                            <div class="p-2 md:p-3 rounded-full bg-yellow-100 text-yellow-600 mr-3">
+                                <i class="fas fa-clock text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs md:text-sm font-medium text-yellow-700">Por Confirmar</p>
+                                <p id="invalidPoints" class="text-lg md:text-2xl font-semibold text-yellow-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card rounded-lg shadow p-4 md:p-6 border border-purple-200">
+                        <div class="flex items-center">
+                            <div class="p-2 md:p-3 rounded-full bg-purple-100 text-purple-600 mr-3">
+                                <i class="fas fa-calendar-alt text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs md:text-sm font-medium text-purple-700">Actualizado</p>
+                                <p id="lastUpdate" class="text-sm md:text-lg font-semibold text-purple-900">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two Column Layout para escritorio, una columna para móvil -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                    <!-- Points List -->
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+                        <div class="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-green-50">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-base md:text-lg font-bold text-red-800">
+                                    <i class="fas fa-map-marker-alt mr-2"></i>Puntos de Vacunación
+                                </h2>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full border border-red-200">
+                                        <span id="visiblePoints">0</span>/<span id="totalPointsCount">0</span>
+                                    </span>
+                                    <select id="itemsPerPage" class="text-xs border border-gray-300 rounded px-2 py-1 bg-white shadow-sm">
+                                        <option value="5">5 por página</option>
+                                        <option value="10" selected>10 por página</option>
+                                        <option value="20">20 por página</option>
+                                        <option value="50">50 por página</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="pointsContainer" class="points-container divide-y divide-gray-100 max-h-[500px] overflow-y-auto bg-white">
+                            <!-- Los puntos se cargarán aquí dinámicamente -->
+                        </div>
+                        
+                        <!-- Paginación -->
+                        <div id="paginationContainer" class="p-4 border-t border-gray-100 bg-white hidden">
+                            <div class="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+                                <div class="text-sm text-gray-600">
+                                    Mostrando <span id="paginationInfo">0-0</span> de <span id="totalFilteredPoints">0</span> puntos
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <button id="firstPage" class="pagination-btn px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-white">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </button>
+                                    <button id="prevPage" class="pagination-btn px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-white">
+                                        <i class="fas fa-angle-left"></i>
+                                    </button>
+                                    
+                                    <div id="pageNumbers" class="flex space-x-1 mx-2">
+                                        <!-- Los números de página se generarán dinámicamente -->
+                                    </div>
+                                    
+                                    <button id="nextPage" class="pagination-btn px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-white">
+                                        <i class="fas fa-angle-right"></i>
+                                    </button>
+                                    <button id="lastPage" class="pagination-btn px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-white">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map -->
+                    <div class="map-container hidden lg:block">
+                        <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 h-full">
+                            <div class="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-green-50">
+                                <div class="flex justify-between items-center">
+                                    <h2 class="text-base md:text-lg font-bold text-red-800">
+                                        <i class="fas fa-map mr-2"></i>Ubicación
+                                    </h2>
+                                    <button id="resetMap" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs transition-colors shadow-md">
+                                        <i class="fas fa-sync-alt mr-1"></i>Restablecer
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="map" class="w-full"></div>
+                            <div id="noPointSelected" class="p-6 text-center text-gray-600 bg-gray-50">
+                                <i class="fas fa-dog text-4xl mb-3 text-gray-400"></i>
+                                <p class="font-medium text-sm">Selecciona un punto para ver su ubicación</p>
+                                <p class="text-xs text-gray-500 mt-1">Vacunas antirrábicas y múltiples disponibles</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Information Section -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div class="bg-white rounded-lg shadow-lg p-4 md:p-6 border border-green-200">
+                        <h3 class="text-base md:text-lg font-bold text-green-800 mb-3 flex items-center">
+                            <i class="fas fa-info-circle mr-2"></i>Información Importante
+                        </h3>
+                        <ul class="space-y-2 text-gray-700 text-sm">
+                            <li class="flex items-start">
+                                <i class="fas fa-paw text-green-500 mr-2 mt-0.5"></i>
+                                <span>Vacunación <strong class="text-green-700">gratuita</strong></span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-paw text-green-500 mr-2 mt-0.5"></i>
+                                <span>Perros con <strong class="text-green-700">correa y bozal</strong></span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-paw text-green-500 mr-2 mt-0.5"></i>
+                                <span>Horario: <strong class="text-green-700">8:00 AM - 4:00 PM</strong></span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-paw text-green-500 mr-2 mt-0.5"></i>
+                                <span>Perros mayores de <strong class="text-green-700">3 meses</strong></span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg p-4 md:p-6 border border-red-200">
+                        <h3 class="text-base md:text-lg font-bold text-red-800 mb-3 flex items-center">
+                            <i class="fas fa-phone-alt mr-2"></i>Contacto
+                        </h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-center text-gray-700">
+                                <i class="fas fa-phone text-red-500 mr-2"></i>
+                                <div>
+                                    <p class="font-medium">Atención</p>
+                                    <p class="font-bold text-red-600">(01) 234-5678</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center text-gray-700">
+                                <i class="fas fa-envelope text-green-500 mr-2"></i>
+                                <div>
+                                    <p class="font-medium">Email</p>
+                                    <p class="font-bold text-xs md:text-sm text-green-600">vacunacion@municipalidad.gob.pe</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista de Mapa Completo -->
+            <div id="mapView" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+                    <div class="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-green-50">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-base md:text-lg font-bold text-red-800">
+                                <i class="fas fa-map-marked-alt mr-2"></i>Mapa de Todos los Puntos
+                            </h2>
+                            <div class="flex space-x-2">
+                                <button id="resetFullMap" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs transition-colors shadow-md">
+                                    <i class="fas fa-sync-alt mr-1"></i>Restablecer Vista
+                                </button>
+                                <button id="refreshMapData" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs transition-colors shadow-md">
+                                    <i class="fas fa-redo-alt mr-1"></i>Actualizar Mapa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="fullMap" class="w-full"></div>
+                </div>
+                
+                <!-- Leyenda del mapa -->
+                <div class="mt-4 bg-white rounded-lg shadow p-4 border border-gray-200">
+                    <h3 class="text-sm font-bold text-red-800 mb-2">Leyenda del Mapa</h3>
+                    <div class="flex flex-wrap gap-4 text-xs text-gray-700">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 rounded-full bg-red-600 border-2 border-white shadow mr-1"></div>
+                            <span>Punto de vacunación</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-syringe text-green-600 mr-1"></i>
+                            <span>Vacunas disponibles</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-clock text-yellow-600 mr-1"></i>
+                            <span>Horario: 8:00 AM - 4:00 PM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Navegación inferior para móviles -->
+    <div class="mobile-bottom-nav md:hidden">
+        <div class="flex justify-around items-center h-16">
+            <button id="mobileTabList" class="tab-button flex flex-col items-center justify-center w-1/3 h-full tab-active">
+                <i class="fas fa-list text-red-600 mb-1"></i>
+                <span class="text-xs font-medium text-red-700">Lista</span>
+            </button>
+            <button id="mobileTabMap" class="tab-button flex flex-col items-center justify-center w-1/3 h-full">
+                <i class="fas fa-map text-gray-500 mb-1"></i>
+                <span class="text-xs font-medium text-gray-500">Mapa</span>
+            </button>
+            <button id="mobileRefresh" class="flex flex-col items-center justify-center w-1/3 h-full">
+                <i class="fas fa-sync-alt text-gray-500 mb-1"></i>
+                <span class="text-xs font-medium text-gray-500">Actualizar</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-red-800 to-green-800 border-t border-red-700 mt-8 md:mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="text-red-100 text-xs text-center md:text-left mb-3 md:mb-0">
+                    <p>Campaña de Vacunación Canina 2025 - Datos en tiempo real</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-red-100 hover:text-white text-sm">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-red-100 hover:text-white text-sm">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-red-100 hover:text-white text-sm">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Configuración de Tailwind con colores personalizados
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#dc2626',
+                        secondary: '#166534'
+                    }
+                }
+            }
+        }
+
+        // Variables globales
+        let map, fullMap;
+        let markers = [];
+        let fullMapMarkers = [];
+        let pointsData = [];
+        let filteredPointsData = [];
+        let selectedPointIndex = -1;
+        let currentMarker = null;
+        let currentView = 'list'; // 'list' o 'map'
+        
+        // Variables de paginación
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let totalPages = 1;
+
+        // URL del CSV publicado de Google Sheets
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXRBg5JQn0twp6q6t2t1zWXqWhRQ2ycEPIpPmTd2BmRw-KQ5Ec7omUAu7AbVf0fZLENsbNSZ8T7tpJ/pub?gid=0&single=true&output=csv';
+
+        // Elementos del DOM
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const errorMessage = document.getElementById('errorMessage');
+        const retryButton = document.getElementById('retryButton');
+        const refreshButton = document.getElementById('refreshData');
+        const refreshDesktopButton = document.getElementById('refreshDataDesktop');
+        const refreshMapDataButton = document.getElementById('refreshMapData');
+        const content = document.getElementById('content');
+        const pointsContainer = document.getElementById('pointsContainer');
+        const resetMapButton = document.getElementById('resetMap');
+        const resetFullMapButton = document.getElementById('resetFullMap');
+        const searchInput = document.getElementById('searchInput');
+        const searchInputDesktop = document.getElementById('searchInputDesktop');
+        const totalPoints = document.getElementById('totalPoints');
+        const validPoints = document.getElementById('validPoints');
+        const invalidPoints = document.getElementById('invalidPoints');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const visiblePoints = document.getElementById('visiblePoints');
+        const totalPointsCount = document.getElementById('totalPointsCount');
+        const noPointSelected = document.getElementById('noPointSelected');
+        
+        // Elementos de paginación
+        const paginationContainer = document.getElementById('paginationContainer');
+        const itemsPerPageSelect = document.getElementById('itemsPerPage');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const totalFilteredPoints = document.getElementById('totalFilteredPoints');
+        const firstPageButton = document.getElementById('firstPage');
+        const prevPageButton = document.getElementById('prevPage');
+        const pageNumbersContainer = document.getElementById('pageNumbers');
+        const nextPageButton = document.getElementById('nextPage');
+        const lastPageButton = document.getElementById('lastPage');
+        
+        // Elementos de pestañas
+        const tabList = document.getElementById('tabList');
+        const tabMap = document.getElementById('tabMap');
+        const listView = document.getElementById('listView');
+        const mapView = document.getElementById('mapView');
+        const mobileTabList = document.getElementById('mobileTabList');
+        const mobileTabMap = document.getElementById('mobileTabMap');
+        const mobileRefresh = document.getElementById('mobileRefresh');
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar datos iniciales
+            loadPointsData();
+            
+            // Configurar eventos
+            retryButton.addEventListener('click', loadPointsData);
+            refreshButton.addEventListener('click', loadPointsData);
+            refreshDesktopButton.addEventListener('click', loadPointsData);
+            refreshMapDataButton.addEventListener('click', refreshMapData);
+            mobileRefresh.addEventListener('click', loadPointsData);
+            resetMapButton.addEventListener('click', resetMapView);
+            resetFullMapButton.addEventListener('click', resetFullMapView);
+            searchInput.addEventListener('input', filterPoints);
+            searchInputDesktop.addEventListener('input', filterPoints);
+            
+            // Configurar eventos de paginación
+            itemsPerPageSelect.addEventListener('change', function() {
+                itemsPerPage = parseInt(this.value);
+                currentPage = 1;
+                renderPointsList();
+                updatePagination();
+            });
+            
+            firstPageButton.addEventListener('click', goToFirstPage);
+            prevPageButton.addEventListener('click', goToPrevPage);
+            nextPageButton.addEventListener('click', goToNextPage);
+            lastPageButton.addEventListener('click', goToLastPage);
+            
+            // Configurar eventos de pestañas
+            setupTabEvents();
+            
+            // Detectar cambios de tamaño de pantalla para ajustar mapas
+            window.addEventListener('resize', function() {
+                setTimeout(adjustMaps, 100);
+            });
+        });
+
+        // Ajustar mapas cuando cambia el tamaño de la pantalla
+        function adjustMaps() {
+            if (map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 300);
+            }
+            if (fullMap) {
+                setTimeout(() => {
+                    fullMap.invalidateSize();
+                }, 300);
+            }
+        }
+
+        // Configurar eventos de pestañas
+        function setupTabEvents() {
+            // Escritorio
+            tabList.addEventListener('click', () => switchTab('list'));
+            tabMap.addEventListener('click', () => switchTab('map'));
+            
+            // Móvil
+            mobileTabList.addEventListener('click', () => switchTab('list'));
+            mobileTabMap.addEventListener('click', () => switchTab('map'));
+        }
+
+        // Cambiar entre pestañas
+        function switchTab(tab) {
+            currentView = tab;
+            
+            // Actualizar estado de pestañas escritorio
+            if (tab === 'list') {
+                tabList.classList.add('tab-active');
+                tabMap.classList.remove('tab-active');
+                listView.classList.remove('hidden');
+                mapView.classList.add('hidden');
+            } else {
+                tabList.classList.remove('tab-active');
+                tabMap.classList.add('tab-active');
+                listView.classList.add('hidden');
+                mapView.classList.remove('hidden');
+                
+                // Inicializar mapa completo si no está inicializado
+                if (!fullMap) {
+                    initializeFullMap();
+                } else {
+                    // Ajustar el mapa cuando se cambia a esta pestaña
+                    setTimeout(() => {
+                        fullMap.invalidateSize();
+                    }, 100);
+                }
+            }
+            
+            // Actualizar estado de pestañas móvil
+            if (tab === 'list') {
+                mobileTabList.classList.add('tab-active');
+                mobileTabList.querySelector('i').classList.remove('text-gray-500');
+                mobileTabList.querySelector('i').classList.add('text-red-600');
+                mobileTabList.querySelector('span').classList.remove('text-gray-500');
+                mobileTabList.querySelector('span').classList.add('text-red-700');
+                
+                mobileTabMap.classList.remove('tab-active');
+                mobileTabMap.querySelector('i').classList.remove('text-red-600');
+                mobileTabMap.querySelector('i').classList.add('text-gray-500');
+                mobileTabMap.querySelector('span').classList.remove('text-red-700');
+                mobileTabMap.querySelector('span').classList.add('text-gray-500');
+            } else {
+                mobileTabList.classList.remove('tab-active');
+                mobileTabList.querySelector('i').classList.remove('text-red-600');
+                mobileTabList.querySelector('i').classList.add('text-gray-500');
+                mobileTabList.querySelector('span').classList.remove('text-red-700');
+                mobileTabList.querySelector('span').classList.add('text-gray-500');
+                
+                mobileTabMap.classList.add('tab-active');
+                mobileTabMap.querySelector('i').classList.remove('text-gray-500');
+                mobileTabMap.querySelector('i').classList.add('text-red-600');
+                mobileTabMap.querySelector('span').classList.remove('text-gray-500');
+                mobileTabMap.querySelector('span').classList.add('text-red-700');
+            }
+            
+            // Ajustar mapas después de cambiar pestaña
+            setTimeout(adjustMaps, 200);
+        }
+
+        // Función para cargar datos desde Google Sheets
+        async function loadPointsData() {
+            showLoadingState();
+            
+            try {
+                // Cargar CSV desde Google Sheets
+                const response = await fetch(CSV_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                
+                // Procesar datos CSV
+                processCSVData(csvText);
+                
+                showContent();
+                renderPointsList();
+                initializeMap();
+                
+                // Actualizar estadísticas
+                updateStats();
+                
+                // Mostrar notificación de éxito
+                showNotification('Datos cargados correctamente', 'success');
+                
+            } catch (error) {
+                // Usar datos de ejemplo si hay error
+                useSampleData();
+                showContent();
+                renderPointsList();
+                initializeMap();
+                updateStats();
+                
+                console.error('Error cargando datos reales, usando datos de ejemplo:', error);
+                showNotification('Usando datos de ejemplo', 'info');
+            }
+        }
+
+        // Refrescar datos del mapa
+        function refreshMapData() {
+            if (fullMap) {
+                // Limpiar marcadores existentes
+                fullMapMarkers.forEach(marker => fullMap.removeLayer(marker));
+                fullMapMarkers = [];
+                
+                // Agregar nuevos marcadores
+                addMarkersToFullMap();
+                
+                // Mostrar notificación de actualización
+                showNotification('Mapa actualizado correctamente', 'success');
+            }
+        }
+
+        // Mostrar notificación
+        function showNotification(message, type = 'info') {
+            // Remover notificaciones existentes
+            document.querySelectorAll('.custom-notification').forEach(el => el.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `custom-notification fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transform transition-transform duration-300 ${
+                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check' : 'info'}-circle mr-2"></i>
+                    <span class="text-sm">${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animación de entrada
+            setTimeout(() => {
+                notification.classList.remove('transform');
+                notification.classList.add('translate-x-0');
+            }, 10);
+            
+            // Remover después de 3 segundos
+            setTimeout(() => {
+                notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Procesar datos CSV
+        function processCSVData(csvText) {
+            pointsData = [];
+            const lines = csvText.split('\n');
+            
+            // Obtener encabezados (primera línea)
+            const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
+            
+            // Buscar índices de columnas
+            const puntoIndex = headers.findIndex(h => h.includes('punto'));
+            const direccionIndex = headers.findIndex(h => h.includes('direccion') || h.includes('dirección'));
+            const latitudIndex = headers.findIndex(h => h.includes('latitud'));
+            const longitudIndex = headers.findIndex(h => h.includes('longitud'));
+            
+            // Validar que tenemos las columnas necesarias
+            if (puntoIndex === -1 || direccionIndex === -1) {
+                throw new Error('El CSV no contiene las columnas necesarias (punto, direccion)');
+            }
+            
+            // Procesar cada línea de datos
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = parseCSVLine(lines[i]);
+                
+                if (values.length > Math.max(puntoIndex, direccionIndex, latitudIndex, longitudIndex)) {
+                    const punto = values[puntoIndex]?.trim() || 'Punto de Vacunación';
+                    const direccion = values[direccionIndex]?.trim() || 'Dirección no especificada';
+                    
+                    // Intentar parsear latitud y longitud
+                    let latitud = null;
+                    let longitud = null;
+                    
+                    if (latitudIndex !== -1 && longitudIndex !== -1) {
+                        latitud = parseFloat(values[latitudIndex]?.replace(',', '.'));
+                        longitud = parseFloat(values[longitudIndex]?.replace(',', '.'));
+                    }
+                    
+                    // Validar coordenadas
+                    const hasValidCoords = !isNaN(latitud) && !isNaN(longitud) && 
+                                          latitud >= -90 && latitud <= 90 && 
+                                          longitud >= -180 && longitud <= 180;
+                    
+                    pointsData.push({
+                        punto,
+                        direccion,
+                        latitud: hasValidCoords ? latitud : null,
+                        longitud: hasValidCoords ? longitud : null,
+                        hasValidCoords
+                    });
+                }
+            }
+            
+            // Si no hay datos, usar datos de ejemplo
+            if (pointsData.length === 0) {
+                useSampleData();
+            }
+            
+            // Hacer una copia para los datos filtrados
+            filteredPointsData = [...pointsData];
+        }
+
+        // Usar datos de ejemplo
+        function useSampleData() {
+            // Generar más datos de ejemplo para probar la paginación
+            pointsData = [
+                {
+                    punto: "Centro de Salud Norte",
+                    direccion: "Av. Las Palmeras 123, Lima",
+                    latitud: -12.0464,
+                    longitud: -77.0428,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Parque Kennedy - Miraflores",
+                    direccion: "Parque Kennedy, Miraflores, Lima",
+                    latitud: -12.1220,
+                    longitud: -77.0307,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Municipalidad de San Isidro",
+                    direccion: "Av. República 455, San Isidro, Lima",
+                    latitud: -12.0984,
+                    longitud: -77.0365,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Plaza de Armas - Centro de Lima",
+                    direccion: "Plaza Mayor de Lima, Cercado de Lima",
+                    latitud: -12.0464,
+                    longitud: -77.0307,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Club Zonal Huáscar - Villa El Salvador",
+                    direccion: "Av. Revolución s/n, Villa El Salvador, Lima",
+                    latitud: -12.2167,
+                    longitud: -76.9333,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Centro Comunal Santa Anita",
+                    direccion: "Av. Central 789, Santa Anita, Lima",
+                    latitud: -12.0456,
+                    longitud: -76.9714,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Parque Zonal Sinchi Roca",
+                    direccion: "Av. Túpac Amaru, Comas, Lima",
+                    latitud: -11.9406,
+                    longitud: -77.0589,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Municipalidad de La Molina",
+                    direccion: "Av. Raúl Ferrero 179, La Molina, Lima",
+                    latitud: -12.0847,
+                    longitud: -76.9486,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Centro de Salud Sur",
+                    direccion: "Av. Los Héroes 456, San Juan de Miraflores",
+                    latitud: -12.1583,
+                    longitud: -76.9667,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Parque de la Muralla - Rimac",
+                    direccion: "Jirón Amazonas, Rímac, Lima",
+                    latitud: -12.0408,
+                    longitud: -77.0289,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Complejo Deportivo Manuel Bonilla",
+                    direccion: "Av. Aviación, Miraflores, Lima",
+                    latitud: -12.1156,
+                    longitud: -77.0194,
+                    hasValidCoords: true
+                },
+                {
+                    punto: "Centro Cívico de Lima Este",
+                    direccion: "Av. Nicolás Ayllón, Ate, Lima",
+                    latitud: -12.0500,
+                    longitud: -76.9333,
+                    hasValidCoords: true
+                }
+            ];
+        }
+
+        // Función auxiliar para parsear líneas CSV (maneja comas dentro de comillas)
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current);
+            return result;
+        }
+
+        // Renderizar lista de puntos con paginación
+        function renderPointsList() {
+            pointsContainer.innerHTML = '';
+            
+            if (filteredPointsData.length === 0) {
+                pointsContainer.innerHTML = `
+                    <div class="p-8 text-center bg-gray-50">
+                        <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-700 font-medium">No se encontraron puntos de vacunación</p>
+                        <p class="text-gray-500 text-sm mt-2">Intenta con otros términos de búsqueda</p>
+                    </div>
+                `;
+                paginationContainer.classList.add('hidden');
+                return;
+            }
+            
+            // Calcular índices para la paginación
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, filteredPointsData.length);
+            const currentPageData = filteredPointsData.slice(startIndex, endIndex);
+            
+            // Renderizar puntos de la página actual
+            currentPageData.forEach((point, index) => {
+                const originalIndex = pointsData.findIndex(p => 
+                    p.punto === point.punto && p.direccion === point.direccion
+                );
+                
+                const pointElement = document.createElement('div');
+                pointElement.className = `point-card p-4 hover:bg-red-50 cursor-pointer ${selectedPointIndex === originalIndex ? 'active-point' : ''}`;
+                pointElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-start">
+                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full ${point.hasValidCoords ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'} font-bold text-xs mr-3 mt-0.5 flex-shrink-0">
+                                    ${startIndex + index + 1}
+                                </span>
+                                <div class="flex-1">
+                                    <h3 class="text-base font-bold text-gray-900">${point.punto}</h3>
+                                    <p class="text-gray-700 mt-1 text-sm flex items-start">
+                                        <i class="fas fa-map-marker-alt text-red-400 mr-1.5 mt-0.5 flex-shrink-0"></i>
+                                        <span class="break-words">${point.direccion}</span>
+                                    </p>
+                                    ${point.hasValidCoords ? 
+                                        `<div class="flex flex-wrap items-center text-xs text-green-600 mt-2 gap-1">
+                                            <span class="bg-green-100 px-2 py-0.5 rounded">
+                                                <i class="fas fa-check-circle mr-1"></i> 
+                                                Disponible
+                                            </span>
+                                            <span class="text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                                <i class="fas fa-syringe mr-1"></i> 
+                                                Vacunas
+                                            </span>
+                                        </div>` :
+                                        `<div class="flex items-center text-xs text-yellow-600 mt-2 bg-yellow-50 px-2 py-0.5 rounded">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            Horario por confirmar
+                                        </div>`
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        ${point.hasValidCoords ? 
+                            `<button class="view-on-map-btn ml-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs transition-colors shadow-md flex items-center whitespace-nowrap" data-index="${originalIndex}">
+                                <i class="fas fa-map-marked-alt mr-1"></i>Ver
+                            </button>` :
+                            `<button class="view-on-map-btn ml-2 bg-gray-300 text-gray-500 px-3 py-1.5 rounded text-xs cursor-not-allowed flex items-center whitespace-nowrap" disabled>
+                                <i class="fas fa-map-marked-alt mr-1"></i>Ver
+                            </button>`
+                        }
+                    </div>
+                `;
+                
+                // Agregar evento para mostrar en el mapa (solo si tiene coordenadas válidas)
+                if (point.hasValidCoords) {
+                    const viewOnMapBtn = pointElement.querySelector('.view-on-map-btn');
+                    viewOnMapBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        selectPoint(originalIndex);
+                        
+                        // En móvil, cambiar a la vista de mapa después de seleccionar
+                        if (window.innerWidth < 1024) {
+                            setTimeout(() => {
+                                switchTab('map');
+                            }, 300);
+                        }
+                    });
+                }
+                
+                // Agregar evento para seleccionar punto
+                pointElement.addEventListener('click', function() {
+                    if (point.hasValidCoords) {
+                        selectPoint(originalIndex);
+                        
+                        // En móvil, cambiar a la vista de mapa después de seleccionar
+                        if (window.innerWidth < 1024) {
+                            setTimeout(() => {
+                                switchTab('map');
+                            }, 300);
+                        }
+                    }
+                });
+                
+                pointsContainer.appendChild(pointElement);
+            });
+            
+            // Actualizar paginación
+            updatePagination();
+        }
+
+        // Actualizar controles de paginación
+        function updatePagination() {
+            totalPages = Math.ceil(filteredPointsData.length / itemsPerPage);
+            
+            // Mostrar u ocultar la paginación según sea necesario
+            if (filteredPointsData.length > itemsPerPage) {
+                paginationContainer.classList.remove('hidden');
+            } else {
+                paginationContainer.classList.add('hidden');
+            }
+            
+            // Actualizar información de paginación
+            const startIndex = (currentPage - 1) * itemsPerPage + 1;
+            const endIndex = Math.min(currentPage * itemsPerPage, filteredPointsData.length);
+            paginationInfo.textContent = `${startIndex}-${endIndex}`;
+            totalFilteredPoints.textContent = filteredPointsData.length;
+            
+            // Actualizar estado de los botones
+            firstPageButton.disabled = currentPage === 1;
+            prevPageButton.disabled = currentPage === 1;
+            nextPageButton.disabled = currentPage === totalPages;
+            lastPageButton.disabled = currentPage === totalPages;
+            
+            // Generar números de página
+            pageNumbersContainer.innerHTML = '';
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            // Ajustar si estamos cerca del final
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.className = `page-number px-3 py-1 rounded border border-gray-300 text-sm ${i === currentPage ? 'active bg-red-600 text-white' : 'pagination-btn bg-white'}`;
+                pageButton.textContent = i;
+                pageButton.addEventListener('click', () => goToPage(i));
+                pageNumbersContainer.appendChild(pageButton);
+            }
+        }
+
+        // Navegación de paginación
+        function goToFirstPage() {
+            if (currentPage > 1) {
+                currentPage = 1;
+                renderPointsList();
+            }
+        }
+
+        function goToPrevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPointsList();
+            }
+        }
+
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderPointsList();
+            }
+        }
+
+        function goToNextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPointsList();
+            }
+        }
+
+        function goToLastPage() {
+            if (currentPage < totalPages) {
+                currentPage = totalPages;
+                renderPointsList();
+            }
+        }
+
+        // Inicializar mapa en la vista de lista
+        function initializeMap() {
+            if (map) {
+                map.remove();
+            }
+            
+            // Crear mapa con vista por defecto (Lima, Perú)
+            map = L.map('map').setView([-12.0464, -77.0428], 11);
+            
+            // Agregar capa de tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Mostrar mensaje de selección inicial
+            noPointSelected.classList.remove('hidden');
+        }
+
+        // Inicializar mapa completo
+        function initializeFullMap() {
+            if (fullMap) {
+                fullMap.remove();
+            }
+            
+            // Crear mapa con vista por defecto (Lima, Perú)
+            fullMap = L.map('fullMap').setView([-12.0464, -77.0428], 11);
+            
+            // Agregar capa de tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(fullMap);
+            
+            // Agregar todos los marcadores al mapa completo
+            addMarkersToFullMap();
+        }
+
+        // Crear marcador personalizado
+        function createCustomMarker(point, index, isMobile = false) {
+            const markerSize = isMobile ? 'sm' : 'md';
+            
+            return L.divIcon({
+                html: `<div class="custom-marker custom-marker-${markerSize}">
+                          <i class="fas fa-paw"></i>
+                       </div>`,
+                iconSize: [markerSize === 'lg' ? 40 : markerSize === 'md' ? 32 : 28, 
+                          markerSize === 'lg' ? 40 : markerSize === 'md' ? 32 : 28],
+                className: 'custom-marker-container'
+            });
+        }
+
+        // Agregar marcadores al mapa completo
+        function addMarkersToFullMap() {
+            // Limpiar marcadores existentes
+            fullMapMarkers.forEach(marker => fullMap.removeLayer(marker));
+            fullMapMarkers = [];
+            
+            // Determinar si es móvil
+            const isMobile = window.innerWidth < 768;
+            
+            // Agregar nuevos marcadores
+            pointsData.forEach((point, index) => {
+                if (point.hasValidCoords) {
+                    // Crear icono personalizado
+                    const markerIcon = createCustomMarker(point, index, isMobile);
+                    
+                    const marker = L.marker([point.latitud, point.longitud], {icon: markerIcon})
+                        .addTo(fullMap)
+                        .bindPopup(`
+                            <div class="popup-content min-w-[200px] md:min-w-[250px]">
+                                <h3 class="font-bold text-lg text-red-600 mb-2">${point.punto}</h3>
+                                <p class="text-gray-600 mb-3 text-sm">${point.direccion}</p>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-center text-green-600">
+                                        <i class="fas fa-syringe mr-2"></i>
+                                        <span><strong>Vacunas:</strong> Antirrábica y múltiple</span>
+                                    </div>
+                                    <div class="flex items-center text-yellow-600">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        <span><strong>Horario:</strong> 8:00 AM - 4:00 PM</span>
+                                    </div>
+                                    <div class="flex items-center text-blue-600">
+                                        <i class="fas fa-notes-medical mr-2"></i>
+                                        <span><strong>Gratuito</strong></span>
+                                    </div>
+                                </div>
+                                <button class="mt-3 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm w-full view-details-btn transition-colors" data-index="${index}">
+                                    Ver en Lista
+                                </button>
+                            </div>
+                        `, {
+                            maxWidth: isMobile ? 280 : 350
+                        });
+                    
+                    // Agregar evento para mostrar detalles
+                    marker.on('popupopen', function() {
+                        const viewDetailsBtn = document.querySelector('.view-details-btn');
+                        if (viewDetailsBtn) {
+                            viewDetailsBtn.addEventListener('click', function() {
+                                selectPoint(index);
+                                switchTab('list');
+                            });
+                        }
+                    });
+                    
+                    fullMapMarkers.push(marker);
+                }
+            });
+            
+            // Ajustar vista para mostrar todos los marcadores
+            if (fullMapMarkers.length > 0) {
+                const group = new L.featureGroup(fullMapMarkers);
+                fullMap.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // Seleccionar punto y mostrarlo en el mapa
+        function selectPoint(index) {
+            // Actualizar selección visual
+            selectedPointIndex = index;
+            renderPointsList();
+            
+            const point = pointsData[index];
+            
+            // Centrar mapa en el punto seleccionado (vista de lista)
+            if (map) {
+                map.setView([point.latitud, point.longitud], 15);
+                
+                // Eliminar marcador anterior
+                if (currentMarker) {
+                    map.removeLayer(currentMarker);
+                }
+                
+                // Determinar si es móvil
+                const isMobile = window.innerWidth < 768;
+                
+                // Crear icono personalizado
+                const markerIcon = createCustomMarker(point, index, isMobile);
+                
+                // Agregar nuevo marcador
+                currentMarker = L.marker([point.latitud, point.longitud], {icon: markerIcon})
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="popup-content min-w-[200px] md:min-w-[250px]">
+                            <h3 class="font-bold text-lg text-red-600 mb-2">${point.punto}</h3>
+                            <p class="text-gray-600 mb-3 text-sm">${point.direccion}</p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center text-green-600">
+                                    <i class="fas fa-syringe mr-2"></i>
+                                    <span><strong>Vacunas:</strong> Antirrábica y múltiple</span>
+                                </div>
+                                <div class="flex items-center text-yellow-600">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    <span><strong>Horario:</strong> 8:00 AM - 4:00 PM</span>
+                                </div>
+                                <div class="flex items-center text-blue-600">
+                                    <i class="fas fa-notes-medical mr-2"></i>
+                                    <span><strong>Gratuito</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    `, {
+                        maxWidth: window.innerWidth < 768 ? 280 : 350
+                    })
+                    .openPopup();
+                
+                // Ocultar mensaje de "selecciona un punto"
+                noPointSelected.classList.add('hidden');
+            }
+            
+            // También centrar en el mapa completo si está activo
+            if (fullMap) {
+                fullMap.setView([point.latitud, point.longitud], 15);
+            }
+        }
+
+        // Restablecer vista del mapa en la vista de lista
+        function resetMapView() {
+            if (selectedPointIndex !== -1 && pointsData[selectedPointIndex].hasValidCoords) {
+                // Si hay un punto seleccionado, centrar en él
+                const point = pointsData[selectedPointIndex];
+                map.setView([point.latitud, point.longitud], 15);
+            } else if (pointsData.filter(p => p.hasValidCoords).length > 0) {
+                // Si hay puntos con coordenadas, ajustar vista para mostrarlos todos
+                const validPoints = pointsData.filter(p => p.hasValidCoords);
+                const group = new L.featureGroup(
+                    validPoints.map(p => L.marker([p.latitud, p.longitud]))
+                );
+                map.fitBounds(group.getBounds().pad(0.1));
+            } else {
+                // Vista por defecto (Lima, Perú)
+                map.setView([-12.0464, -77.0428], 11);
+            }
+        }
+
+        // Restablecer vista del mapa completo
+        function resetFullMapView() {
+            if (fullMapMarkers.length > 0) {
+                const group = new L.featureGroup(fullMapMarkers);
+                fullMap.fitBounds(group.getBounds().pad(0.1));
+            } else {
+                fullMap.setView([-12.0464, -77.0428], 11);
+            }
+        }
+
+        // Filtrar puntos
+        function filterPoints() {
+            const searchTerm = (searchInput.value || searchInputDesktop.value).toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                filteredPointsData = [...pointsData];
+            } else {
+                filteredPointsData = pointsData.filter(point => 
+                    point.punto.toLowerCase().includes(searchTerm) || 
+                    point.direccion.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Resetear a la primera página al filtrar
+            currentPage = 1;
+            
+            // Si el punto seleccionado ya no está en los resultados filtrados, deseleccionar
+            if (selectedPointIndex !== -1 && !filteredPointsData.includes(pointsData[selectedPointIndex])) {
+                selectedPointIndex = -1;
+                if (currentMarker) {
+                    map.removeLayer(currentMarker);
+                    currentMarker = null;
+                }
+                noPointSelected.classList.remove('hidden');
+            }
+            
+            renderPointsList();
+            updateVisiblePointsCount();
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            const validCount = pointsData.filter(p => p.hasValidCoords).length;
+            const invalidCount = pointsData.length - validCount;
+            
+            totalPoints.textContent = pointsData.length;
+            validPoints.textContent = validCount;
+            invalidPoints.textContent = invalidCount;
+            lastUpdate.textContent = new Date().toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            updateVisiblePointsCount();
+        }
+
+        // Actualizar contador de puntos visibles
+        function updateVisiblePointsCount() {
+            visiblePoints.textContent = filteredPointsData.length;
+            totalPointsCount.textContent = pointsData.length;
+        }
+
+        // Estados de la UI
+        function showLoadingState() {
+            loadingState.classList.remove('hidden');
+            errorState.classList.add('hidden');
+            content.classList.add('hidden');
+        }
+
+        function showErrorState(message) {
+            loadingState.classList.add('hidden');
+            errorState.classList.remove('hidden');
+            content.classList.add('hidden');
+            errorMessage.textContent = message;
+        }
+
+        function showContent() {
+            loadingState.classList.add('hidden');
+            errorState.classList.add('hidden');
+            content.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
