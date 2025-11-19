@@ -36,11 +36,11 @@
         }
         .active-point {
             border-left: 4px solid #dc2626;
-            background-color: #fef2f2;
+            background-color: #e6b1b1;
         }
         .map-container {
             position: sticky;
-            top: 1rem;
+            top: 5rem;
         }
         .header-gradient {
             background: linear-gradient(135deg, #991b1b 0%, #166534 100%);
@@ -76,7 +76,7 @@
             color: white;
         }
         .custom-marker {
-            background: #dc2626;
+            background: #ed1f1f;
             border: 3px solid white;
             border-radius: 50%;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -1128,7 +1128,7 @@
             }
             
             // Crear mapa con vista por defecto (Lima, Perú)
-            map = L.map('map').setView([-12.0464, -77.0428], 11);
+            map = L.map('map').setView([-16.4955455, -68.1336229], 12);
             
             // Agregar capa de tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1146,7 +1146,7 @@
             }
             
             // Crear mapa con vista por defecto (Lima, Perú)
-            fullMap = L.map('fullMap').setView([-12.0464, -77.0428], 11);
+            fullMap = L.map('fullMap').setView([-16.4955455, -68.1336229], 12);
             
             // Agregar capa de tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
