@@ -36,11 +36,11 @@
         }
         .active-point {
             border-left: 4px solid #dc2626;
-            background-color: #e6b1b1;
+            background-color: #fef2f2;
         }
         .map-container {
             position: sticky;
-            top: 5rem;
+            top: 1rem;
         }
         .header-gradient {
             background: linear-gradient(135deg, #991b1b 0%, #166534 100%);
@@ -76,7 +76,7 @@
             color: white;
         }
         .custom-marker {
-            background: #ed1f1f;
+            background: #dc2626;
             border: 3px solid white;
             border-radius: 50%;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -100,6 +100,96 @@
             width: 28px;
             height: 28px;
             font-size: 12px;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            z-index: 100;
+            min-width: 220px;
+            margin-top: 0.5rem;
+        }
+        .dropdown-menu.show {
+            display: block;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #374151;
+            text-decoration: none;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+        }
+        .dropdown-item:hover {
+            background-color: #f9fafb;
+            color: #dc2626;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .pdf-viewer-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .pdf-viewer-container.show {
+            display: flex;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .pdf-viewer {
+            background: white;
+            border-radius: 0.5rem;
+            width: 90%;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .pdf-header {
+            padding: 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+        .pdf-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .close-pdf {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .close-pdf:hover {
+            background: #b91c1c;
         }
         @media (min-width: 768px) {
             .mobile-bottom-nav {
@@ -128,7 +218,7 @@
                              class="w-19 h-19 object-contain"> </div>
                     <div>
                         <h1 class="text-lg md:text-xl font-bold text-white">CAMPAÑA DE VACUNACIÓN CANINA 2025 - SEDES LA PAZ</h1>
-                        <p class="text-red-100 text-xs hidden sm:block">ENCUENTRA LOS PUNTOS DE VACUNACION ANTIRRABICA</p>
+                        <p class="text-red-100 text-xs hidden sm:block">ENCUENTRA LOS PUNTOS DE VACUNACION OFICIALES</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-2">
@@ -158,6 +248,9 @@
                 </button>
                 <button id="tabMap" class="tab-button px-6 py-3 font-medium text-gray-600 hover:text-red-700 border-b-2 border-transparent hover:border-red-300 transition-colors">
                     <i class="fas fa-map mr-2"></i>Mapa General
+                </button>
+                <button id="downloadPDF" class="tab-button px-6 py-3 font-medium text-gray-600 hover:text-red-700 border-b-2 border-transparent hover:border-red-300 transition-colors">
+                    <i class="fas fa-file-pdf mr-2"></i>Descargar todos los Puntos
                 </button>
             </div>
         </div>
@@ -327,7 +420,7 @@
                             <div id="noPointSelected" class="p-6 text-center text-gray-600 bg-gray-50">
                                 <i class="fas fa-dog text-4xl mb-3 text-gray-400"></i>
                                 <p class="font-medium text-sm">Selecciona un punto para ver su ubicación</p>
-                                <p class="text-xs text-gray-500 mt-1">Vacunas antirrábicas disponibles</p>
+                                <p class="text-xs text-gray-500 mt-1">Vacunas antirrábicas y múltiples disponibles</p>
                             </div>
                         </div>
                     </div>
@@ -354,7 +447,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-paw text-green-500 mr-2 mt-0.5"></i>
-                                <span>Perros mayores de <strong class="text-green-700">1 mes</strong></span>
+                                <span>Perros mayores de <strong class="text-green-700">1 meses</strong></span>
                             </li>
                         </ul>
                     </div>
@@ -373,7 +466,7 @@
                             <div class="flex items-center text-gray-700">
                                 <i class="fas fa-envelope text-green-500 mr-2"></i>
                                 <div>
-                                    <p class="font-medium">Facebook</p>
+                                    <p class="font-medium">Email</p>
                                     <p class="font-bold text-xs md:text-sm text-green-600">Servicio Departamental de Salud La Paz</p>
                                 </div>
                             </div>
@@ -397,6 +490,36 @@
                                 <button id="refreshMapData" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs transition-colors shadow-md">
                                     <i class="fas fa-redo-alt mr-1"></i>Actualizar Mapa
                                 </button>
+                                <!-- Menú de descarga PDF -->
+                                <div class="relative">
+                                    <button id="downloadDropdown" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs transition-colors shadow-md flex items-center">
+                                        <i class="fas fa-download mr-1"></i>Lista de Puntos
+                                        <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                                    </button>
+                                    <div id="downloadMenu" class="dropdown-menu">
+                                        <div class="dropdown-item" id="downloadPDF">
+                                            <i class="fas fa-file-pdf text-red-500 mr-2"></i>
+                                            <div>
+                                                <div class="font-medium">Descargar PDF</div>
+                                                <div class="text-xs text-gray-500">Guardar en mi dispositivo</div>
+                                            </div>
+                                        </div>
+                                        <div class="dropdown-item" id="viewPDF">
+                                            <i class="fas fa-eye text-green-500 mr-2"></i>
+                                            <div>
+                                                <div class="font-medium">Ver en Navegador</div>
+                                                <div class="text-xs text-gray-500">Visualizar sin descargar</div>
+                                            </div>
+                                        </div>
+                                        <div class="dropdown-item" id="openPDF">
+                                            <i class="fas fa-external-link-alt text-blue-500 mr-2"></i>
+                                            <div>
+                                                <div class="font-medium">Abrir en Nueva Pestaña</div>
+                                                <div class="text-xs text-gray-500">Ver en ventana separada</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -425,7 +548,34 @@
         </div>
     </main>
 
-    <!-- Navegación inferior para móviles -->
+    <!-- Visor de PDF -->
+    <div id="pdfViewer" class="pdf-viewer-container">
+        <div class="pdf-viewer">
+            <div class="pdf-header">
+                <h3 class="text-lg font-bold text-gray-800 flex-1">Lista de Puntos de Vacunación - PDF</h3>
+                <button class="close-pdf">
+                    <i class="fas fa-times mr-1"></i>Cerrar
+                </button>
+            </div>
+            <div class="pdf-content">
+                <div id="pdfLoading" class="flex flex-col items-center justify-center h-full">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                    <p class="text-gray-700">Cargando documento PDF...</p>
+                </div>
+                <iframe id="pdfFrame" class="w-full h-full hidden" frameborder="0"></iframe>
+                <div id="pdfError" class="hidden flex flex-col items-center justify-center h-full text-center">
+                    <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">No se pudo cargar el PDF</h3>
+                    <p class="text-gray-600 mb-4">El documento no está disponible o hubo un error al cargarlo.</p>
+                    <button id="downloadFallback" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-download mr-2"></i>Descargar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegación inferior para móviles - ACTUALIZADA -->
     <div class="mobile-bottom-nav md:hidden">
         <div class="flex justify-around items-center h-16">
             <button id="mobileTabList" class="tab-button flex flex-col items-center justify-center w-1/3 h-full tab-active">
@@ -436,9 +586,10 @@
                 <i class="fas fa-map text-gray-500 mb-1"></i>
                 <span class="text-xs font-medium text-gray-500">Mapa</span>
             </button>
-            <button id="mobileRefresh" class="flex flex-col items-center justify-center w-1/3 h-full">
-                <i class="fas fa-sync-alt text-gray-500 mb-1"></i>
-                <span class="text-xs font-medium text-gray-500">Actualizar</span>
+            <!-- Botón de descarga PDF en móviles -->
+            <button id="mobileDownloadPDF" class="flex flex-col items-center justify-center w-1/3 h-full">
+                <i class="fas fa-file-pdf text-blue-500 mb-1"></i>
+                <span class="text-xs font-medium text-blue-600">Descargar Todos</span>
             </button>
         </div>
     </div>
@@ -496,8 +647,13 @@
         let itemsPerPage = 10;
         let totalPages = 1;
 
+     
         // URL del CSV publicado de Google Sheets
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXRBg5JQn0twp6q6t2t1zWXqWhRQ2ycEPIpPmTd2BmRw-KQ5Ec7omUAu7AbVf0fZLENsbNSZ8T7tpJ/pub?gid=0&single=true&output=csv';
+
+        // URL del PDF - REEMPLAZA CON LA RUTA REAL DE TU PDF
+        const PDF_URL = './lista-2025.pdf'; // Ruta en la raíz del servidor
+
 
         // Elementos del DOM
         const loadingState = document.getElementById('loadingState');
@@ -520,6 +676,25 @@
         const visiblePoints = document.getElementById('visiblePoints');
         const totalPointsCount = document.getElementById('totalPointsCount');
         const noPointSelected = document.getElementById('noPointSelected');
+
+
+        // Elementos del menú de descarga PDF
+        const downloadDropdown = document.getElementById('downloadDropdown');
+        const downloadMenu = document.getElementById('downloadMenu');
+        const downloadPDF = document.getElementById('downloadPDF');
+        const viewPDF = document.getElementById('viewPDF');
+        const openPDF = document.getElementById('openPDF');
+        
+        // Elementos del visor PDF
+        const pdfViewer = document.getElementById('pdfViewer');
+        const pdfFrame = document.getElementById('pdfFrame');
+        const pdfLoading = document.getElementById('pdfLoading');
+        const pdfError = document.getElementById('pdfError');
+        const closePdf = document.querySelector('.close-pdf');
+        const downloadFallback = document.getElementById('downloadFallback');
+        
+        // Elemento de descarga móvil
+        const mobileDownloadPDF = document.getElementById('mobileDownloadPDF');
         
         // Elementos de paginación
         const paginationContainer = document.getElementById('paginationContainer');
@@ -551,11 +726,17 @@
             refreshButton.addEventListener('click', loadPointsData);
             refreshDesktopButton.addEventListener('click', loadPointsData);
             refreshMapDataButton.addEventListener('click', refreshMapData);
-            mobileRefresh.addEventListener('click', loadPointsData);
+            mobileDownloadPDF.addEventListener('click', downloadPDFFile); // Evento para descarga móvil
             resetMapButton.addEventListener('click', resetMapView);
             resetFullMapButton.addEventListener('click', resetFullMapView);
             searchInput.addEventListener('input', filterPoints);
             searchInputDesktop.addEventListener('input', filterPoints);
+            
+            // Configurar eventos del menú de descarga PDF
+            setupDownloadEvents();
+            
+            // Configurar eventos del visor PDF
+            setupPDFViewerEvents();
             
             // Configurar eventos de paginación
             itemsPerPageSelect.addEventListener('change', function() {
@@ -577,7 +758,138 @@
             window.addEventListener('resize', function() {
                 setTimeout(adjustMaps, 100);
             });
+            
+            // Cerrar menú desplegable al hacer clic fuera
+            document.addEventListener('click', function(event) {
+                if (!downloadDropdown.contains(event.target)) {
+                    downloadMenu.classList.remove('show');
+                }
+            });
         });
+
+         // Descargar archivo PDF (función reutilizable)
+        function downloadPDFFile() {
+            // Crear enlace temporal para descarga
+            const link = document.createElement('a');
+            link.href = PDF_URL;
+            link.target = '_blank';
+            link.download = 'lista-puntos-vacunacion-canina-2025.pdf';
+            
+            // Mostrar notificación de descarga
+            showNotification('Descargando lista de puntos en PDF...', 'success');
+            
+            // Simular clic en el enlace para iniciar descarga
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Configurar eventos del menú de descarga PDF
+        function setupDownloadEvents() {
+            // Toggle del menú desplegable
+            downloadDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+                downloadMenu.classList.toggle('show');
+            });
+            
+            // Descargar PDF
+            downloadPDF.addEventListener('click', function(e) {
+                e.preventDefault();
+                downloadMenu.classList.remove('show');
+                downloadPDFFile();
+            });
+            
+            // Ver PDF en el navegador
+            viewPDF.addEventListener('click', function(e) {
+                e.preventDefault();
+                downloadMenu.classList.remove('show');
+                showPDFInViewer();
+            });
+            
+            // Abrir PDF en nueva pestaña
+            openPDF.addEventListener('click', function(e) {
+                e.preventDefault();
+                downloadMenu.classList.remove('show');
+                openPDFInNewTab();
+            });
+        }
+
+        // Configurar eventos del visor PDF
+        function setupPDFViewerEvents() {
+            // Cerrar visor PDF
+            closePdf.addEventListener('click', function() {
+                pdfViewer.classList.remove('show');
+                pdfFrame.classList.add('hidden');
+                pdfLoading.classList.remove('hidden');
+                pdfError.classList.add('hidden');
+            });
+            
+            // Cerrar al hacer clic fuera del visor
+            pdfViewer.addEventListener('click', function(e) {
+                if (e.target === pdfViewer) {
+                    pdfViewer.classList.remove('show');
+                    pdfFrame.classList.add('hidden');
+                    pdfLoading.classList.remove('hidden');
+                    pdfError.classList.add('hidden');
+                }
+            });
+            
+            // Descargar PDF desde el visor de error
+            downloadFallback.addEventListener('click', function() {
+                downloadPDFFile();
+            });
+            
+            // Cerrar con tecla Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && pdfViewer.classList.contains('show')) {
+                    pdfViewer.classList.remove('show');
+                    pdfFrame.classList.add('hidden');
+                    pdfLoading.classList.remove('hidden');
+                    pdfError.classList.add('hidden');
+                }
+            });
+        }
+
+        // Mostrar PDF en el visor
+        function showPDFInViewer() {
+            // Mostrar el visor
+            pdfViewer.classList.add('show');
+            pdfLoading.classList.remove('hidden');
+            pdfFrame.classList.add('hidden');
+            pdfError.classList.add('hidden');
+            
+            // Configurar el iframe para mostrar el PDF
+            pdfFrame.src = PDF_URL + '#view=FitH&toolbar=0&navpanes=0';
+            
+            // Esperar a que cargue el PDF
+            pdfFrame.onload = function() {
+                pdfLoading.classList.add('hidden');
+                pdfFrame.classList.remove('hidden');
+            };
+            
+            // Manejar errores de carga
+            pdfFrame.onerror = function() {
+                pdfLoading.classList.add('hidden');
+                pdfError.classList.remove('hidden');
+                showNotification('Error al cargar el PDF', 'error');
+            };
+            
+            // Timeout por si el PDF tarda demasiado
+            setTimeout(function() {
+                if (pdfLoading.classList.contains('hidden') === false) {
+                    pdfLoading.classList.add('hidden');
+                    pdfError.classList.remove('hidden');
+                    showNotification('El PDF está tardando en cargar', 'warning');
+                }
+            }, 10000);
+        }
+
+        // Abrir PDF en nueva pestaña
+        function openPDFInNewTab() {
+            window.open(PDF_URL, '_blank');
+            showNotification('Abriendo PDF en nueva pestaña...', 'info');
+        }
+
 
         // Ajustar mapas cuando cambia el tamaño de la pantalla
         function adjustMaps() {
@@ -763,11 +1075,10 @@
             const direccionIndex = headers.findIndex(h => h.includes('direccion') || h.includes('dirección'));
             const latitudIndex = headers.findIndex(h => h.includes('latitud'));
             const longitudIndex = headers.findIndex(h => h.includes('longitud'));
-            const redIndex = headers.findIndex(h => h.includes('red'));
             
             // Validar que tenemos las columnas necesarias
             if (puntoIndex === -1 || direccionIndex === -1) {
-                throw new Error('El CSV no contiene las columnas necesarias (punto, direccion, red)');
+                throw new Error('El CSV no contiene las columnas necesarias (punto, direccion)');
             }
             
             // Procesar cada línea de datos
@@ -776,7 +1087,7 @@
                 
                 const values = parseCSVLine(lines[i]);
                 
-                if (values.length > Math.max(puntoIndex, direccionIndex, latitudIndex, longitudIndex, redIndex)) {
+                if (values.length > Math.max(puntoIndex, direccionIndex, latitudIndex, longitudIndex)) {
                     const punto = values[puntoIndex]?.trim() || 'Punto de Vacunación';
                     const direccion = values[direccionIndex]?.trim() || 'Dirección no especificada';
                     
@@ -788,7 +1099,6 @@
                         latitud = parseFloat(values[latitudIndex]?.replace(',', '.'));
                         longitud = parseFloat(values[longitudIndex]?.replace(',', '.'));
                     }
-                    const red = values[redIndex]?.trim() || 'Red de Salud';
                     
                     // Validar coordenadas
                     const hasValidCoords = !isNaN(latitud) && !isNaN(longitud) && 
@@ -800,7 +1110,6 @@
                         direccion,
                         latitud: hasValidCoords ? latitud : null,
                         longitud: hasValidCoords ? longitud : null,
-                        red,
                         hasValidCoords
                     });
                 }
@@ -971,10 +1280,6 @@
                                         <i class="fas fa-map-marker-alt text-red-400 mr-1.5 mt-0.5 flex-shrink-0"></i>
                                         <span class="break-words">${point.direccion}</span>
                                     </p>
-                                    <p class="text-gray-700 mt-1 text-sm flex items-start">
-                                        <i class="fas fa-compass text-green-400 mr-1.5 mt-0.5 flex-shrink-0"></i>
-                                        <span class="break-words">${point.red}</span>
-                                    </p>
                                     ${point.hasValidCoords ? 
                                         `<div class="flex flex-wrap items-center text-xs text-green-600 mt-2 gap-1">
                                             <span class="bg-green-100 px-2 py-0.5 rounded">
@@ -1127,7 +1432,7 @@
                 map.remove();
             }
             
-            // Crear mapa con vista por defecto (Lima, Perú)
+             // Crear mapa con vista por defecto (Lima, Perú)
             map = L.map('map').setView([-16.4955455, -68.1336229], 12);
             
             // Agregar capa de tiles
@@ -1195,9 +1500,12 @@
                                 <div class="space-y-2 text-sm">
                                     <div class="flex items-center text-green-600">
                                         <i class="fas fa-syringe mr-2"></i>
-                                        <span><strong>Vacuna:</strong> Antirrábica</span>
+                                        <span><strong>Vacunas:</strong> Antirrábica y múltiple</span>
                                     </div>
-                                    <p class="text-gray-600 mb-3 text-sm">${point.red}</p>
+                                    <div class="flex items-center text-yellow-600">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        <span><strong>Horario:</strong> 8:00 AM - 4:00 PM</span>
+                                    </div>
                                     <div class="flex items-center text-blue-600">
                                         <i class="fas fa-notes-medical mr-2"></i>
                                         <span><strong>Gratuito</strong></span>
@@ -1266,9 +1574,12 @@
                             <div class="space-y-2 text-sm">
                                 <div class="flex items-center text-green-600">
                                     <i class="fas fa-syringe mr-2"></i>
-                                    <span><strong>Vacuna:</strong> Antirrábica</span>
+                                    <span><strong>Vacunas:</strong> Antirrábica y múltiple</span>
                                 </div>
-                                <p class="text-gray-600 mb-3 text-sm">${point.red}</p>
+                                <div class="flex items-center text-yellow-600">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    <span><strong>Horario:</strong> 8:00 AM - 4:00 PM</span>
+                                </div>
                                 <div class="flex items-center text-blue-600">
                                     <i class="fas fa-notes-medical mr-2"></i>
                                     <span><strong>Gratuito</strong></span>
@@ -1328,8 +1639,7 @@
             } else {
                 filteredPointsData = pointsData.filter(point => 
                     point.punto.toLowerCase().includes(searchTerm) || 
-                    point.direccion.toLowerCase().includes(searchTerm) ||
-                    point.red.toLowerCase().includes(searchTerm)
+                    point.direccion.toLowerCase().includes(searchTerm)
                 );
             }
             
